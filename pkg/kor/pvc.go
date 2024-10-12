@@ -73,7 +73,8 @@ func processNamespacePvcs(clientset kubernetes.Interface, namespace string, filt
 	return diff, nil
 }
 
-func GetUnusedPvcs(filterOpts *filters.Options, clientset kubernetes.Interface, outputFormat string, opts common.Opts) (string, error) {
+func GetUnusedPvcs(filterOpts *filters.Options, clientsetinterface ClientInterface, outputFormat string, opts common.Opts) (string, error) {
+	clientset := clientsetinterface.GetKubernetesClient()
 	resources := make(map[string]map[string][]ResourceInfo)
 	for _, namespace := range filterOpts.Namespaces(clientset) {
 		diff, err := processNamespacePvcs(clientset, namespace, filterOpts)

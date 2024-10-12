@@ -15,9 +15,8 @@ var deployCmd = &cobra.Command{
 	Short:   "Gets unused deployments",
 	Args:    cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		clientset := kor.GetKubeClient(kubeconfig)
-		clientsetargorollouts := kor.GetKubeClientArgoRollouts(kubeconfig)
-		if response, err := kor.GetUnusedDeployments(filterOptions, clientset, clientsetargorollouts, outputFormat, opts); err != nil {
+		clientset, _ := kor.GetKubeClient(kubeconfig)
+		if response, err := kor.GetUnusedDeployments(filterOptions, clientset, outputFormat, opts); err != nil {
 			fmt.Println(err)
 		} else {
 			utils.PrintLogo(outputFormat)

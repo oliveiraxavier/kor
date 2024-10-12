@@ -11,7 +11,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned"
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
@@ -53,7 +52,9 @@ func retrieveNoNamespaceDiff(clientset kubernetes.Interface, apiExtClient apiext
 	return noNamespaceDiff, clearedResourceList
 }
 
-func retrieveNamespaceDiffs(clientset kubernetes.Interface, clientsetargorollouts versioned.Interface, namespace string, resourceList []string, filterOpts *filters.Options) []ResourceDiff {
+func retrieveNamespaceDiffs(clientsetinterface ClientInterface, namespace string, resourceList []string, filterOpts *filters.Options) []ResourceDiff {
+	clientset := clientsetinterface.GetKubernetesClient()
+	clientsetargorollouts := clientsetinterface.GetArgoRolloutsClient()
 	var allDiffs []ResourceDiff
 	for _, resource := range resourceList {
 		var diffResult ResourceDiff
@@ -67,9 +68,9 @@ func retrieveNamespaceDiffs(clientset kubernetes.Interface, clientsetargorollout
 		case "sa", "serviceaccount", "serviceaccounts":
 			diffResult = getUnusedServiceAccounts(clientset, namespace, filterOpts)
 		case "deploy", "deployment", "deployments":
-			diffResult = getUnusedDeployments(clientset, clientsetargorollouts, namespace, filterOpts)
+			diffResult = getUnusedDeployments(clientsetinterface, namespace, filterOpts)
 		case "sts", "statefulset", "statefulsets":
-			diffResult = getUnusedStatefulSets(clientset, namespace, filterOpts)
+			diffResult = getUnusedStatefulSets(clientsetinterface, namespace, filterOpts)
 		case "role", "roles":
 			diffResult = getUnusedRoles(clientset, namespace, filterOpts)
 		case "hpa", "horizontalpodautoscaler", "horizontalpodautoscalers":
@@ -100,7 +101,9 @@ func retrieveNamespaceDiffs(clientset kubernetes.Interface, clientsetargorollout
 	return allDiffs
 }
 
-func GetUnusedMulti(resourceNames string, filterOpts *filters.Options, clientset kubernetes.Interface, clientsetargorollouts versioned.Interface, apiExtClient apiextensionsclientset.Interface, dynamicClient dynamic.Interface, outputFormat string, opts common.Opts) (string, error) {
+func GetUnusedMulti(resourceNames string, filterOpts *filters.Options, clientsetinterface ClientInterface, apiExtClient apiextensionsclientset.Interface, dynamicClient dynamic.Interface, outputFormat string, opts common.Opts) (string, error) {
+	clientset := clientsetinterface.GetKubernetesClient()
+	clientsetargorollouts := clientsetinterface.GetArgoRolloutsClient()
 	resourceList := strings.Split(resourceNames, ",")
 	namespaces := filterOpts.Namespaces(clientset)
 	resources := make(map[string]map[string][]ResourceInfo)
@@ -133,7 +136,7 @@ func GetUnusedMulti(resourceNames string, filterOpts *filters.Options, clientset
 	}
 
 	for _, namespace := range namespaces {
-		allDiffs := retrieveNamespaceDiffs(clientset, clientsetargorollouts, namespace, resourceList, filterOpts)
+		allDiffs := retrieveNamespaceDiffs(clientsetinterface, namespace, resourceList, filterOpts)
 		if opts.GroupBy == "namespace" {
 			resources[namespace] = make(map[string][]ResourceInfo)
 		}

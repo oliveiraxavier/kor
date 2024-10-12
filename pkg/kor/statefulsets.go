@@ -8,13 +8,13 @@ import (
 	"os"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func processNamespaceStatefulSets(clientset kubernetes.Interface, namespace string, filterOpts *filters.Options) ([]ResourceInfo, error) {
+func processNamespaceStatefulSets(clientsetinterface ClientInterface, namespace string, filterOpts *filters.Options) ([]ResourceInfo, error) {
+	clientset := clientsetinterface.GetKubernetesClient()
 	statefulSetsList, err := clientset.AppsV1().StatefulSets(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: filterOpts.IncludeLabels})
 	if err != nil {
 		return nil, err
@@ -44,10 +44,11 @@ func processNamespaceStatefulSets(clientset kubernetes.Interface, namespace stri
 	return statefulSetsWithoutReplicas, nil
 }
 
-func GetUnusedStatefulSets(filterOpts *filters.Options, clientset kubernetes.Interface, outputFormat string, opts common.Opts) (string, error) {
+func GetUnusedStatefulSets(filterOpts *filters.Options, clientsetinterface ClientInterface, outputFormat string, opts common.Opts) (string, error) {
+	clientset := clientsetinterface.GetKubernetesClient()
 	resources := make(map[string]map[string][]ResourceInfo)
 	for _, namespace := range filterOpts.Namespaces(clientset) {
-		diff, err := processNamespaceStatefulSets(clientset, namespace, filterOpts)
+		diff, err := processNamespaceStatefulSets(clientsetinterface, namespace, filterOpts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to process namespace %s: %v\n", namespace, err)
 			continue

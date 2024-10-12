@@ -45,7 +45,8 @@ func processPvs(clientset kubernetes.Interface, filterOpts *filters.Options) ([]
 
 }
 
-func GetUnusedPvs(filterOpts *filters.Options, clientset kubernetes.Interface, outputFormat string, opts common.Opts) (string, error) {
+func GetUnusedPvs(filterOpts *filters.Options, clientsetinterface ClientInterface, outputFormat string, opts common.Opts) (string, error) {
+	clientset := clientsetinterface.GetKubernetesClient()
 	resources := make(map[string]map[string][]ResourceInfo)
 	diff, err := processPvs(clientset, filterOpts)
 	if err != nil {

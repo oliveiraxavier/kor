@@ -79,7 +79,8 @@ func getResourcesWithFinalizersPendingDeletion(clientset kubernetes.Interface, d
 	return retrievePendingDeletionResources(resourceTypes, dynamicClient, filterOpts)
 }
 
-func GetUnusedfinalizers(filterOpts *filters.Options, clientset kubernetes.Interface, dynamicClient *dynamic.DynamicClient, outputFormat string, opts common.Opts) (string, error) {
+func GetUnusedfinalizers(filterOpts *filters.Options, clientsetinterface ClientInterface, dynamicClient *dynamic.DynamicClient, outputFormat string, opts common.Opts) (string, error) {
+	clientset := clientsetinterface.GetKubernetesClient()
 	var outputBuffer bytes.Buffer
 	namespaces := filterOpts.Namespaces(clientset)
 	response := make(map[string]map[string][]ResourceInfo)

@@ -13,12 +13,11 @@ var exporterCmd = &cobra.Command{
 	Short: "start prometheus exporter",
 	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		clientset := kor.GetKubeClient(kubeconfig)
-		clientsetargorollouts := kor.GetKubeClientArgoRollouts(kubeconfig)
+		clientset, _ := kor.GetKubeClient(kubeconfig)
 		apiExtClient := kor.GetAPIExtensionsClient(kubeconfig)
 		dynamicClient := kor.GetDynamicClient(kubeconfig)
 
-		kor.Exporter(filterOptions, clientset, clientsetargorollouts, apiExtClient, dynamicClient, "json", opts, resourceList)
+		kor.Exporter(filterOptions, clientset, apiExtClient, dynamicClient, "json", opts, resourceList)
 
 	},
 }

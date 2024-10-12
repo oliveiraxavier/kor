@@ -48,8 +48,10 @@ func processNamespaceArgoRollouts(clientset kubernetes.Interface, clientsetrollo
 	return argoRolloutWithoutReplicas, nil
 }
 
-func GetUnusedArgoRollouts(filterOpts *filters.Options, clientset kubernetes.Interface, clientsetargorollouts versioned.Interface, outputFormat string, opts common.Opts) (string, error) {
+func GetUnusedArgoRollouts(filterOpts *filters.Options, clientsetinterface ClientInterface, outputFormat string, opts common.Opts) (string, error) {
 	resources := make(map[string]map[string][]ResourceInfo)
+	clientset := clientsetinterface.GetKubernetesClient()
+	clientsetargorollouts := clientsetinterface.GetArgoRolloutsClient()
 	for _, namespace := range filterOpts.Namespaces(clientset) {
 		diff, err := processNamespaceArgoRollouts(clientset, clientsetargorollouts, namespace, filterOpts)
 

@@ -14,12 +14,11 @@ var allCmd = &cobra.Command{
 	Short: "Gets unused resources",
 	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		clientset := kor.GetKubeClient(kubeconfig)
-		clientsetargorollouts := kor.GetKubeClientArgoRollouts(kubeconfig)
+		clientset, _ := kor.GetKubeClient(kubeconfig)
 		apiExtClient := kor.GetAPIExtensionsClient(kubeconfig)
 		dynamicClient := kor.GetDynamicClient(kubeconfig)
 
-		if response, err := kor.GetUnusedAll(filterOptions, clientset, clientsetargorollouts, apiExtClient, dynamicClient, outputFormat, opts); err != nil {
+		if response, err := kor.GetUnusedAll(filterOptions, clientset, apiExtClient, dynamicClient, outputFormat, opts); err != nil {
 			fmt.Println(err)
 		} else {
 			utils.PrintLogo(outputFormat)

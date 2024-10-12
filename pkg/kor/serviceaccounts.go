@@ -164,7 +164,8 @@ func processNamespaceSA(clientset kubernetes.Interface, namespace string, filter
 	return unusedServiceAccounts, nil
 }
 
-func GetUnusedServiceAccounts(filterOpts *filters.Options, clientset kubernetes.Interface, outputFormat string, opts common.Opts) (string, error) {
+func GetUnusedServiceAccounts(filterOpts *filters.Options, clientsetinterface ClientInterface, outputFormat string, opts common.Opts) (string, error) {
+	clientset := clientsetinterface.GetKubernetesClient()
 	resources := make(map[string]map[string][]ResourceInfo)
 	for _, namespace := range filterOpts.Namespaces(clientset) {
 		diff, err := processNamespaceSA(clientset, namespace, filterOpts)

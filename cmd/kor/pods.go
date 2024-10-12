@@ -15,7 +15,7 @@ var podCmd = &cobra.Command{
 	Short:   "Gets unused pods",
 	Args:    cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		clientset := kor.GetKubeClient(kubeconfig)
+		clientset, _ := kor.GetKubeClient(kubeconfig)
 
 		if response, err := kor.GetUnusedPods(filterOptions, clientset, outputFormat, opts); err != nil {
 			fmt.Println(err)

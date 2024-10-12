@@ -31,12 +31,11 @@ var rootCmd = &cobra.Command{
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		resourceNames := args[0]
-		clientset := kor.GetKubeClient(kubeconfig)
-		clientsetargorollouts := kor.GetKubeClientArgoRollouts(kubeconfig)
+		clientset, _ := kor.GetKubeClient(kubeconfig)
 		apiExtClient := kor.GetAPIExtensionsClient(kubeconfig)
 		dynamicClient := kor.GetDynamicClient(kubeconfig)
 
-		if response, err := kor.GetUnusedMulti(resourceNames, filterOptions, clientset, clientsetargorollouts, apiExtClient, dynamicClient, outputFormat, opts); err != nil {
+		if response, err := kor.GetUnusedMulti(resourceNames, filterOptions, clientset, apiExtClient, dynamicClient, outputFormat, opts); err != nil {
 			fmt.Println(err)
 		} else {
 			utils.PrintLogo(outputFormat)

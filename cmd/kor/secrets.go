@@ -15,7 +15,7 @@ var secretCmd = &cobra.Command{
 	Short:   "Gets unused secrets",
 	Args:    cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		clientset := kor.GetKubeClient(kubeconfig)
+		clientset, _ := kor.GetKubeClient(kubeconfig)
 
 		if response, err := kor.GetUnusedSecrets(filterOptions, clientset, outputFormat, opts); err != nil {
 			fmt.Println(err)

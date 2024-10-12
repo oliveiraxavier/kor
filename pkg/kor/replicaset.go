@@ -37,7 +37,8 @@ func processNamespaceReplicaSets(clientset kubernetes.Interface, namespace strin
 	return unusedReplicaSetNames, nil
 }
 
-func GetUnusedReplicaSets(filterOpts *filters.Options, clientset kubernetes.Interface, outputFormat string, opts common.Opts) (string, error) {
+func GetUnusedReplicaSets(filterOpts *filters.Options, clientsetinterface ClientInterface, outputFormat string, opts common.Opts) (string, error) {
+	clientset := clientsetinterface.GetKubernetesClient()
 	resources := make(map[string]map[string][]ResourceInfo)
 	for _, namespace := range filterOpts.Namespaces(clientset) {
 		diff, err := processNamespaceReplicaSets(clientset, namespace, filterOpts)

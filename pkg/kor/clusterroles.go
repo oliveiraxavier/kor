@@ -23,7 +23,6 @@ import (
 var clusterRolesConfig []byte
 
 func retrieveUsedClusterRoles(clientset kubernetes.Interface, filterOpts *filters.Options) ([]string, error) {
-
 	//Get a list of all namespaces
 	namespaceList, err := clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
@@ -152,6 +151,7 @@ func retrieveClusterRoleNames(clientset kubernetes.Interface, filterOpts *filter
 }
 
 func processClusterRoles(clientset kubernetes.Interface, filterOpts *filters.Options) ([]ResourceInfo, error) {
+
 	usedClusterRoles, err := retrieveUsedClusterRoles(clientset, filterOpts)
 	if err != nil {
 		return nil, err
@@ -180,8 +180,9 @@ func processClusterRoles(clientset kubernetes.Interface, filterOpts *filters.Opt
 
 }
 
-func GetUnusedClusterRoles(filterOpts *filters.Options, clientset kubernetes.Interface, outputFormat string, opts common.Opts) (string, error) {
+func GetUnusedClusterRoles(filterOpts *filters.Options, clientsetinterface ClientInterface, outputFormat string, opts common.Opts) (string, error) {
 	resources := make(map[string]map[string][]ResourceInfo)
+	clientset := clientsetinterface.GetKubernetesClient()
 	diff, err := processClusterRoles(clientset, filterOpts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to process cluster role : %v\n", err)

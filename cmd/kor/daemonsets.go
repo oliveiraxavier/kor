@@ -15,8 +15,7 @@ var dsCmd = &cobra.Command{
 	Short:   "Gets unused daemonSets",
 	Args:    cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		clientset := kor.GetKubeClient(kubeconfig)
-
+		clientset, _ := kor.GetKubeClient(kubeconfig)
 		if response, err := kor.GetUnusedDaemonSets(filterOptions, clientset, outputFormat, opts); err != nil {
 			fmt.Println(err)
 		} else {

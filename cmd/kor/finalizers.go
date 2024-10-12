@@ -14,7 +14,7 @@ var finalizerCmd = &cobra.Command{
 	Short:   "Gets resources waiting for finalizers to delete",
 	Args:    cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		clientset := kor.GetKubeClient(kubeconfig)
+		clientset, _ := kor.GetKubeClient(kubeconfig)
 		dynamicClient := kor.GetDynamicClient(kubeconfig)
 
 		if response, err := kor.GetUnusedfinalizers(filterOptions, clientset, dynamicClient, outputFormat, opts); err != nil {

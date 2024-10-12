@@ -15,7 +15,7 @@ var hpaCmd = &cobra.Command{
 	Short:   "Gets unused hpas",
 	Args:    cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		clientset := kor.GetKubeClient(kubeconfig)
+		clientset, _ := kor.GetKubeClient(kubeconfig)
 
 		if response, err := kor.GetUnusedHpas(filterOptions, clientset, outputFormat, opts); err != nil {
 			fmt.Println(err)

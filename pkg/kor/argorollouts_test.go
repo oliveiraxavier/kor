@@ -10,7 +10,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/yonahd/kor/pkg/common"
@@ -18,9 +17,9 @@ import (
 )
 
 func TestGetUnusedArgoRolloutsStructured(t *testing.T) {
-	clientset := fake.NewSimpleClientset()
-	clientsetargorollouts := createClientSetTestArgoRollouts(t)
-
+	clientsetinterface := createTestDeployments(t)
+	clientset := clientsetinterface.GetKubernetesClient()
+	clientsetargorollouts := clientsetinterface.GetArgoRolloutsClient()
 	opts := common.Opts{
 		WebhookURL:    "",
 		Channel:       "",
@@ -57,7 +56,7 @@ func TestGetUnusedArgoRolloutsStructured(t *testing.T) {
 		t.Fatalf("Error creating fake argo rollout: %v", err)
 	}
 
-	output, err := GetUnusedArgoRollouts(&filters.Options{}, clientset, clientsetargorollouts, "json", opts)
+	output, err := GetUnusedArgoRollouts(&filters.Options{}, clientsetinterface, "json", opts)
 
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedArgoRolloutsStructured: %v", err)

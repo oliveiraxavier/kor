@@ -11,10 +11,11 @@ import (
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
-func processNamespaceDeployments(clientset kubernetes.Interface, clientsetrollout versioned.Interface, namespace string, filterOpts *filters.Options) ([]ResourceInfo, error) {
+func processNamespaceDeployments(clientsetinterface ClientInterface, namespace string, filterOpts *filters.Options) ([]ResourceInfo, error) {
+	clientset := clientsetinterface.GetKubernetesClient()
+	clientsetrollout := clientsetinterface.GetArgoRolloutsClient()
 	deploymentsList, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: filterOpts.IncludeLabels})
 	if err != nil {
 		return nil, err
@@ -49,10 +50,11 @@ func processNamespaceDeployments(clientset kubernetes.Interface, clientsetrollou
 	return deploymentsWithoutReplicas, nil
 }
 
-func GetUnusedDeployments(filterOpts *filters.Options, clientset kubernetes.Interface, clientsetargorollouts versioned.Interface, outputFormat string, opts common.Opts) (string, error) {
+func GetUnusedDeployments(filterOpts *filters.Options, clientsetinterface ClientInterface, outputFormat string, opts common.Opts) (string, error) {
+	clientset := clientsetinterface.GetKubernetesClient()
 	resources := make(map[string]map[string][]ResourceInfo)
 	for _, namespace := range filterOpts.Namespaces(clientset) {
-		diff, err := processNamespaceDeployments(clientset, clientsetargorollouts, namespace, filterOpts)
+		diff, err := processNamespaceDeployments(clientsetinterface, namespace, filterOpts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to process namespace %s: %v\n", namespace, err)
 			continue

@@ -73,8 +73,8 @@ func getUnusedServiceAccounts(clientset kubernetes.Interface, namespace string, 
 	return namespaceSADiff
 }
 
-func getUnusedDeployments(clientset kubernetes.Interface, clientsetargorollouts versioned.Interface, namespace string, filterOpts *filters.Options) ResourceDiff {
-	deployDiff, err := processNamespaceDeployments(clientset, clientsetargorollouts, namespace, filterOpts)
+func getUnusedDeployments(clientsetinterface ClientInterface, namespace string, filterOpts *filters.Options) ResourceDiff {
+	deployDiff, err := processNamespaceDeployments(clientsetinterface, namespace, filterOpts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to get %s namespace %s: %v\n", "deployments", namespace, err)
 	}
@@ -85,8 +85,8 @@ func getUnusedDeployments(clientset kubernetes.Interface, clientsetargorollouts 
 	return namespaceSADiff
 }
 
-func getUnusedStatefulSets(clientset kubernetes.Interface, namespace string, filterOpts *filters.Options) ResourceDiff {
-	stsDiff, err := processNamespaceStatefulSets(clientset, namespace, filterOpts)
+func getUnusedStatefulSets(clientsetinterface ClientInterface, namespace string, filterOpts *filters.Options) ResourceDiff {
+	stsDiff, err := processNamespaceStatefulSets(clientsetinterface, namespace, filterOpts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to get %s namespace %s: %v\n", "statefulSets", namespace, err)
 	}
@@ -277,8 +277,10 @@ func getUnusedArgoRollouts(clientset kubernetes.Interface, clientsetargorollouts
 	return namespaceSADiff
 }
 
-func GetUnusedAllNamespaced(filterOpts *filters.Options, clientset kubernetes.Interface, clientsetargorollouts versioned.Interface, outputFormat string, opts common.Opts) (string, error) {
+func GetUnusedAllNamespaced(filterOpts *filters.Options, clientsetinterface ClientInterface, outputFormat string, opts common.Opts) (string, error) {
 	resources := make(map[string]map[string][]ResourceInfo)
+	clientset := clientsetinterface.GetKubernetesClient()
+	clientsetargorollouts := clientsetinterface.GetArgoRolloutsClient()
 	for _, namespace := range filterOpts.Namespaces(clientset) {
 		switch opts.GroupBy {
 		case "namespace":
@@ -287,9 +289,9 @@ func GetUnusedAllNamespaced(filterOpts *filters.Options, clientset kubernetes.In
 			resources[namespace]["Service"] = getUnusedSVCs(clientset, namespace, filterOpts).diff
 			resources[namespace]["Secret"] = getUnusedSecrets(clientset, namespace, filterOpts).diff
 			resources[namespace]["ServiceAccount"] = getUnusedServiceAccounts(clientset, namespace, filterOpts).diff
-			resources[namespace]["Deployment"] = getUnusedDeployments(clientset, clientsetargorollouts, namespace, filterOpts).diff
+			resources[namespace]["Deployment"] = getUnusedDeployments(clientsetinterface, namespace, filterOpts).diff
 			resources[namespace]["ArgoRollout"] = getUnusedArgoRollouts(clientset, clientsetargorollouts, namespace, filterOpts).diff
-			resources[namespace]["StatefulSet"] = getUnusedStatefulSets(clientset, namespace, filterOpts).diff
+			resources[namespace]["StatefulSet"] = getUnusedStatefulSets(clientsetinterface, namespace, filterOpts).diff
 			resources[namespace]["Role"] = getUnusedRoles(clientset, namespace, filterOpts).diff
 			resources[namespace]["Hpa"] = getUnusedHpas(clientset, namespace, filterOpts).diff
 			resources[namespace]["Pvc"] = getUnusedPvcs(clientset, namespace, filterOpts).diff
@@ -305,9 +307,9 @@ func GetUnusedAllNamespaced(filterOpts *filters.Options, clientset kubernetes.In
 			appendResources(resources, "Service", namespace, getUnusedSVCs(clientset, namespace, filterOpts).diff)
 			appendResources(resources, "Secret", namespace, getUnusedSecrets(clientset, namespace, filterOpts).diff)
 			appendResources(resources, "ServiceAccount", namespace, getUnusedServiceAccounts(clientset, namespace, filterOpts).diff)
-			appendResources(resources, "Deployment", namespace, getUnusedDeployments(clientset, clientsetargorollouts, namespace, filterOpts).diff)
+			appendResources(resources, "Deployment", namespace, getUnusedDeployments(clientsetinterface, namespace, filterOpts).diff)
 			appendResources(resources, "ArgoRollout", namespace, getUnusedArgoRollouts(clientset, clientsetargorollouts, namespace, filterOpts).diff)
-			appendResources(resources, "StatefulSet", namespace, getUnusedStatefulSets(clientset, namespace, filterOpts).diff)
+			appendResources(resources, "StatefulSet", namespace, getUnusedStatefulSets(clientsetinterface, namespace, filterOpts).diff)
 			appendResources(resources, "Role", namespace, getUnusedRoles(clientset, namespace, filterOpts).diff)
 			appendResources(resources, "Hpa", namespace, getUnusedHpas(clientset, namespace, filterOpts).diff)
 			appendResources(resources, "Pvc", namespace, getUnusedPvcs(clientset, namespace, filterOpts).diff)
@@ -341,8 +343,9 @@ func GetUnusedAllNamespaced(filterOpts *filters.Options, clientset kubernetes.In
 	return unusedAllNamespaced, nil
 }
 
-func GetUnusedAllNonNamespaced(filterOpts *filters.Options, clientset kubernetes.Interface, apiExtClient apiextensionsclientset.Interface, dynamicClient dynamic.Interface, outputFormat string, opts common.Opts) (string, error) {
+func GetUnusedAllNonNamespaced(filterOpts *filters.Options, clientsetinterface ClientInterface, apiExtClient apiextensionsclientset.Interface, dynamicClient dynamic.Interface, outputFormat string, opts common.Opts) (string, error) {
 	resources := make(map[string]map[string][]ResourceInfo)
+	clientset := clientsetinterface.GetKubernetesClient()
 	switch opts.GroupBy {
 	case "namespace":
 		resources[""] = make(map[string][]ResourceInfo)
@@ -377,8 +380,9 @@ func GetUnusedAllNonNamespaced(filterOpts *filters.Options, clientset kubernetes
 	return unusedAllNonNamespaced, nil
 }
 
-func GetUnusedAll(filterOpts *filters.Options, clientset kubernetes.Interface, clientsetargorollouts versioned.Interface, apiExtClient apiextensionsclientset.Interface, dynamicClient dynamic.Interface, outputFormat string, opts common.Opts) (string, error) {
-	unusedAllNamespaced, err := GetUnusedAllNamespaced(filterOpts, clientset, clientsetargorollouts, outputFormat, opts)
+func GetUnusedAll(filterOpts *filters.Options, clientsetinterface ClientInterface, apiExtClient apiextensionsclientset.Interface, dynamicClient dynamic.Interface, outputFormat string, opts common.Opts) (string, error) {
+
+	unusedAllNamespaced, err := GetUnusedAllNamespaced(filterOpts, clientsetinterface, outputFormat, opts)
 	if err != nil {
 		fmt.Printf("err: %v\n", err)
 	}
@@ -388,7 +392,7 @@ func GetUnusedAll(filterOpts *filters.Options, clientset kubernetes.Interface, c
 		return unusedAllNamespaced, nil
 	}
 
-	unusedAllNonNamespaced, err := GetUnusedAllNonNamespaced(filterOpts, clientset, apiExtClient, dynamicClient, outputFormat, opts)
+	unusedAllNonNamespaced, err := GetUnusedAllNonNamespaced(filterOpts, clientsetinterface, apiExtClient, dynamicClient, outputFormat, opts)
 	if err != nil {
 		fmt.Printf("err: %v\n", err)
 	}

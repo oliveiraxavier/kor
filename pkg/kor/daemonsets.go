@@ -60,8 +60,9 @@ func processNamespaceDaemonSets(clientset kubernetes.Interface, namespace string
 	return daemonSetsWithoutReplicas, nil
 }
 
-func GetUnusedDaemonSets(filterOpts *filters.Options, clientset kubernetes.Interface, outputFormat string, opts common.Opts) (string, error) {
+func GetUnusedDaemonSets(filterOpts *filters.Options, clientsetinterface ClientInterface, outputFormat string, opts common.Opts) (string, error) {
 	resources := make(map[string]map[string][]ResourceInfo)
+	clientset := clientsetinterface.GetKubernetesClient()
 	for _, namespace := range filterOpts.Namespaces(clientset) {
 		diff, err := processNamespaceDaemonSets(clientset, namespace, filterOpts)
 		if err != nil {

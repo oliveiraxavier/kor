@@ -10,18 +10,50 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
+	"github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned"
 	fakeargorollouts "github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned/fake"
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestDeployments(t *testing.T) *fake.Clientset {
-	clientset := fake.NewSimpleClientset()
+type FakeClientSet struct {
+	coreClient             *fake.Clientset
+	coreClientArgoRollouts *fakeargorollouts.Clientset
+}
 
-	_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
+// GetArgoRolloutsClient implements ClientInterface.
+func (c *FakeClientSet) GetArgoRolloutsClient() versioned.Interface {
+	return c.coreClientArgoRollouts
+}
+
+// GetKubernetesClient implements ClientInterface.
+func (c *FakeClientSet) GetKubernetesClient() kubernetes.Interface {
+	return c.coreClient
+}
+
+func NewFakeClientSet(t *testing.T) (ClientInterface, error) {
+	coreClient := fake.NewSimpleClientset()
+	coreClientArgoRollouts := fakeargorollouts.NewSimpleClientset()
+
+	// Return the ClientSet struct
+	return &FakeClientSet{
+		coreClient:             coreClient,
+		coreClientArgoRollouts: coreClientArgoRollouts,
+	}, nil
+}
+
+func createTestDeployments(t *testing.T) ClientInterface {
+	clientsetinterface, err := NewFakeClientSet(t)
+	if err != nil {
+		t.Fatalf("Error creating client set. Error: %v", err)
+	}
+
+	clientset := clientsetinterface.GetKubernetesClient()
+	_, err = clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
 		ObjectMeta: v1.ObjectMeta{Name: testNamespace},
 	}, v1.CreateOptions{})
 
@@ -53,18 +85,13 @@ func createTestDeployments(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake deployment: %v", err)
 	}
 
-	return clientset
-}
-
-func createClientSetTestArgoRollouts(t *testing.T) *fakeargorollouts.Clientset {
-	return fakeargorollouts.NewSimpleClientset()
+	return clientsetinterface
 }
 
 func TestProcessNamespaceDeployments(t *testing.T) {
-	clientset := createTestDeployments(t)
-	clientsetargorollouts := createClientSetTestArgoRollouts(t)
+	clientsetinterface := createTestDeployments(t)
 
-	deploymentsWithoutReplicas, err := processNamespaceDeployments(clientset, clientsetargorollouts, testNamespace, &filters.Options{})
+	deploymentsWithoutReplicas, err := processNamespaceDeployments(clientsetinterface, testNamespace, &filters.Options{})
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -79,8 +106,7 @@ func TestProcessNamespaceDeployments(t *testing.T) {
 }
 
 func TestGetUnusedDeploymentsStructured(t *testing.T) {
-	clientset := createTestDeployments(t)
-	clientsetargorollouts := createClientSetTestArgoRollouts(t)
+	clientsetinterface := createTestDeployments(t)
 
 	opts := common.Opts{
 		WebhookURL:    "",
@@ -91,7 +117,7 @@ func TestGetUnusedDeploymentsStructured(t *testing.T) {
 		GroupBy:       "namespace",
 	}
 
-	output, err := GetUnusedDeployments(&filters.Options{}, clientset, clientsetargorollouts, "json", opts)
+	output, err := GetUnusedDeployments(&filters.Options{}, clientsetinterface, "json", opts)
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedDeploymentsStructured: %v", err)
 	}
@@ -116,7 +142,8 @@ func TestGetUnusedDeploymentsStructured(t *testing.T) {
 }
 
 func TestGetUnusedDeploymentsWithArgoRolloutStructured(t *testing.T) {
-	clientset := fake.NewSimpleClientset()
+	clientsetinterface := createTestDeployments(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	opts := common.Opts{
 		WebhookURL:    "",
@@ -141,10 +168,9 @@ func TestGetUnusedDeploymentsWithArgoRolloutStructured(t *testing.T) {
 		t.Fatalf("Error creating fake deployment: %v", err)
 	}
 
-	clientsetargorollouts := createClientSetTestArgoRollouts(t)
 	CreateTestArgoRolloutWithDeployment(testNamespace, deploymentName, deplomentWorkLoadRefNoReplicas, AppLabels)
 
-	output, err := GetUnusedDeployments(&filters.Options{}, clientset, clientsetargorollouts, "json", opts)
+	output, err := GetUnusedDeployments(&filters.Options{}, clientsetinterface, "json", opts)
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedDeploymentsStructured: %v", err)
 	}

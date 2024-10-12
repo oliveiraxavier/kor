@@ -15,7 +15,7 @@ var stsCmd = &cobra.Command{
 	Short:   "Gets unused statefulSets",
 	Args:    cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		clientset := kor.GetKubeClient(kubeconfig)
+		clientset, _ := kor.GetKubeClient(kubeconfig)
 
 		if response, err := kor.GetUnusedStatefulSets(filterOptions, clientset, outputFormat, opts); err != nil {
 			fmt.Println(err)

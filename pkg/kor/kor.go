@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"sort"
 
-	clientargorollouts "github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned"
+	"github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -16,6 +16,17 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
+
+type ClientInterface interface {
+	GetKubernetesClient() kubernetes.Interface
+	GetArgoRolloutsClient() versioned.Interface
+}
+
+// ClientSet is a struct that holds both Kubernetes core client and custom clients.
+type ClientSet struct {
+	coreClient             *kubernetes.Clientset
+	coreClientArgoRollouts *versioned.Clientset
+}
 
 type ExceptionResource struct {
 	Namespace    string
@@ -40,6 +51,35 @@ type Config struct {
 	ExceptionJobs            []ExceptionResource `json:"exceptionJobs"`
 	ExceptionPdbs            []ExceptionResource `json:"exceptionPdbs"`
 	// Add other configurations if needed
+}
+
+func (c *ClientSet) GetArgoRolloutsClient() versioned.Interface {
+	return c.coreClientArgoRollouts
+}
+
+// GetKubernetesClient returns the Kubernetes core client.
+func (c *ClientSet) GetKubernetesClient() kubernetes.Interface {
+	return c.coreClient
+}
+
+func NewClientSet(config *rest.Config) (ClientInterface, error) {
+	// Create Kubernetes core client
+	coreClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Kubernetes core client: %v", err)
+	}
+
+	// Create the custom v1 client
+	coreClientArgoRolloutsV1Client, err := versioned.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Argo Rollouts client: %v", err)
+	}
+
+	// Return the ClientSet struct
+	return &ClientSet{
+		coreClient:             coreClient,
+		coreClientArgoRollouts: coreClientArgoRolloutsV1Client,
+	}, nil
 }
 
 func RemoveDuplicatesAndSort(slice []string) []string {
@@ -76,34 +116,19 @@ func GetConfig(kubeconfig string) (*rest.Config, error) {
 	return clientcmd.BuildConfigFromFlags("", kubeconfig)
 }
 
-func GetKubeClient(kubeconfig string) *kubernetes.Clientset {
+func GetKubeClient(kubeconfig string) (ClientInterface, error) {
 	config, err := GetConfig(kubeconfig)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load kubeconfig: %v\n", err)
 		os.Exit(1)
 	}
+	clientset, err := NewClientSet(config)
 
-	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create Kubernetes client: %v\n", err)
 		os.Exit(1)
 	}
-	return clientset
-}
-
-func GetKubeClientArgoRollouts(kubeconfig string) *clientargorollouts.Clientset {
-	config, err := GetConfig(kubeconfig)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load kubeconfig: %v\n", err)
-		os.Exit(1)
-	}
-
-	clientset, err := clientargorollouts.NewForConfig(config)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create Kubernetes client for argo rollouts: %v\n", err)
-		os.Exit(1)
-	}
-	return clientset
+	return clientset, nil
 }
 
 func GetAPIExtensionsClient(kubeconfig string) *apiextensionsclientset.Clientset {
