@@ -70,7 +70,7 @@ func retrieveNamespaceDiffs(clientsetinterface ClientInterface, namespace string
 		case "deploy", "deployment", "deployments":
 			diffResult = getUnusedDeployments(clientsetinterface, namespace, filterOpts)
 		case "sts", "statefulset", "statefulsets":
-			diffResult = getUnusedStatefulSets(clientsetinterface, namespace, filterOpts)
+			diffResult = getUnusedStatefulSets(clientset, namespace, filterOpts)
 		case "role", "roles":
 			diffResult = getUnusedRoles(clientset, namespace, filterOpts)
 		case "hpa", "horizontalpodautoscaler", "horizontalpodautoscalers":

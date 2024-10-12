@@ -7,14 +7,14 @@ import (
 	"testing"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestStorageClass(t *testing.T) *fake.Clientset {
-	clientset := fake.NewSimpleClientset()
+func createTestStorageClass(t *testing.T) ClientInterface {
+	clientsetinterface := SetConfigsForTests(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	sc1 := CreateTestStorageClass("test-sc1", "kor.com")
 	_, err := clientset.StorageV1().StorageClasses().Create(context.TODO(), sc1, v1.CreateOptions{})
@@ -22,11 +22,12 @@ func createTestStorageClass(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake %s: %v", "StorageClass", err)
 	}
 
-	return clientset
+	return clientsetinterface
 }
 
 func TestRetrieveUsedStorageClassesFromPVCs(t *testing.T) {
-	clientset := createTestPvcs(t)
+	clientsetinterface := createTestPvcs(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	usedStorageClasses, err := retrieveUsedStorageClasses(clientset)
 
 	if err != nil {
@@ -39,7 +40,8 @@ func TestRetrieveUsedStorageClassesFromPVCs(t *testing.T) {
 }
 
 func TestRetrieveUsedStorageClassesFromPVs(t *testing.T) {
-	clientset := createTestPvs(t)
+	clientsetinterface := createTestPvs(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	usedStorageClasses, err := retrieveUsedStorageClasses(clientset)
 
 	if err != nil {
@@ -52,7 +54,8 @@ func TestRetrieveUsedStorageClassesFromPVs(t *testing.T) {
 }
 
 func TestProcessStorageClasses(t *testing.T) {
-	clientset := createTestStorageClass(t)
+	clientsetinterface := createTestStorageClass(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	unusedStorageClasses, err := processStorageClasses(clientset, &filters.Options{})
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -68,7 +71,7 @@ func TestProcessStorageClasses(t *testing.T) {
 }
 
 func TestGetUnusedStorageClassesStructured(t *testing.T) {
-	clientset := createTestStorageClass(t)
+	clientsetinterface := createTestStorageClass(t)
 
 	opts := common.Opts{
 		WebhookURL:    "",
@@ -79,7 +82,7 @@ func TestGetUnusedStorageClassesStructured(t *testing.T) {
 		GroupBy:       "namespace",
 	}
 
-	output, err := GetUnusedStorageClasses(&filters.Options{}, clientset, "json", opts)
+	output, err := GetUnusedStorageClasses(&filters.Options{}, clientsetinterface, "json", opts)
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedStorageClasses: %v", err)
 	}

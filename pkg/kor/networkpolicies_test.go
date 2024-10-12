@@ -10,16 +10,18 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestNetworkPolicies(t *testing.T) *fake.Clientset {
-	clientset := fake.NewSimpleClientset()
-
+func createTestNetworkPolicies(t *testing.T) ClientInterface {
+	clientsetinterface, err := NewFakeClientSet(t)
+	if err != nil {
+		t.Fatalf("Error creating client set. Error: %v", err)
+	}
+	clientset := clientsetinterface.GetKubernetesClient()
 	testNamespace2 := "another-namespace"
 	namespaces := []string{testNamespace, testNamespace2}
 
@@ -119,12 +121,12 @@ func createTestNetworkPolicies(t *testing.T) *fake.Clientset {
 		}
 	}
 
-	return clientset
+	return clientsetinterface
 }
 
 func TestRetrievePodsForSelector(t *testing.T) {
-	clientset := createTestNetworkPolicies(t)
-
+	clientsetinterface := createTestNetworkPolicies(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	selector := &v1.LabelSelector{
 		MatchLabels: map[string]string{
 			"app.kubernetes.io/version": "v1",
@@ -151,7 +153,8 @@ func TestRetrievePodsForSelector(t *testing.T) {
 }
 
 func TestIsAnyPodMatchedInSources(t *testing.T) {
-	clientset := createTestNetworkPolicies(t)
+	clientsetinterface := createTestNetworkPolicies(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	sources := []networkingv1.NetworkPolicyPeer{
 		{
@@ -174,7 +177,8 @@ func TestIsAnyPodMatchedInSources(t *testing.T) {
 }
 
 func TestIsAnyIngressRuleUsed(t *testing.T) {
-	clientset := createTestNetworkPolicies(t)
+	clientsetinterface := createTestNetworkPolicies(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	netpol := CreateTestNetworkPolicy("netpol-0", testNamespace, AppLabels, v1.LabelSelector{}, nil, nil)
 
@@ -189,7 +193,8 @@ func TestIsAnyIngressRuleUsed(t *testing.T) {
 }
 
 func TestIsAnyEgressRuleUsed(t *testing.T) {
-	clientset := createTestNetworkPolicies(t)
+	clientsetinterface := createTestNetworkPolicies(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	netpol := CreateTestNetworkPolicy("netpol-0", testNamespace, AppLabels, v1.LabelSelector{}, nil, nil)
 
@@ -204,7 +209,8 @@ func TestIsAnyEgressRuleUsed(t *testing.T) {
 }
 
 func TestProcessNamespaceNetworkPolicies(t *testing.T) {
-	clientset := createTestNetworkPolicies(t)
+	clientsetinterface := createTestNetworkPolicies(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	unusedNetpols, err := processNamespaceNetworkPolicies(clientset, testNamespace, &filters.Options{})
 	if err != nil {
@@ -230,7 +236,7 @@ func TestProcessNamespaceNetworkPolicies(t *testing.T) {
 }
 
 func TestGetUnusedNetworkPolicies(t *testing.T) {
-	clientset := createTestNetworkPolicies(t)
+	clientsetinterface := createTestNetworkPolicies(t)
 
 	opts := common.Opts{
 		WebhookURL:    "",
@@ -241,7 +247,7 @@ func TestGetUnusedNetworkPolicies(t *testing.T) {
 		GroupBy:       "namespace",
 	}
 
-	output, err := GetUnusedNetworkPolicies(&filters.Options{}, clientset, "json", opts)
+	output, err := GetUnusedNetworkPolicies(&filters.Options{}, clientsetinterface, "json", opts)
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedNetworkPolicies: %v", err)
 	}

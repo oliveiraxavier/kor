@@ -8,16 +8,21 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestMultiResources(t *testing.T) *fake.Clientset {
-	clientset := fake.NewClientset()
+func createTestMultiResources(t *testing.T) ClientInterface {
 
-	_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
+	clientsetinterface, err := NewFakeClientSet(t)
+	if err != nil {
+		t.Fatalf("Error creating client set. Error: %v", err)
+	}
+
+	clientset := clientsetinterface.GetKubernetesClient()
+
+	_, err = clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
 		ObjectMeta: v1.ObjectMeta{Name: testNamespace},
 	}, v1.CreateOptions{})
 
@@ -37,17 +42,16 @@ func createTestMultiResources(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake configmap: %v", err)
 	}
 
-	return clientset
+	return clientsetinterface
 
 }
 
 func TestRetrieveNamespaceDiff(t *testing.T) {
-	clientset := createTestMultiResources(t)
-	clientsetargorollouts := createClientSetTestArgoRollouts(t)
+	clientsetinterface := createTestMultiResources(t)
 	resourceList := []string{"cm", "pdb", "deployment"}
 	filterOpts := &filters.Options{}
 
-	namespaceDiff := retrieveNamespaceDiffs(clientset, clientsetargorollouts, testNamespace, resourceList, filterOpts)
+	namespaceDiff := retrieveNamespaceDiffs(clientsetinterface, testNamespace, resourceList, filterOpts)
 
 	if len(namespaceDiff) != 3 {
 		t.Fatalf("Expected 3 diffs, got %d", len(namespaceDiff))
@@ -68,8 +72,7 @@ func TestRetrieveNamespaceDiff(t *testing.T) {
 }
 
 func TestGetUnusedMulti(t *testing.T) {
-	clientset := createTestMultiResources(t)
-	clientsetargorollouts := createClientSetTestArgoRollouts(t)
+	clientsetinterface := createTestMultiResources(t)
 	resourceList := "cm,pdb,deployment"
 
 	opts := common.Opts{
@@ -81,7 +84,7 @@ func TestGetUnusedMulti(t *testing.T) {
 		GroupBy:       "namespace",
 	}
 
-	output, err := GetUnusedMulti(resourceList, &filters.Options{}, clientset, clientsetargorollouts, nil, nil, "json", opts)
+	output, err := GetUnusedMulti(resourceList, &filters.Options{}, clientsetinterface, nil, nil, "json", opts)
 
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedMulti: %v", err)

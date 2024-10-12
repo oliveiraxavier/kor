@@ -10,17 +10,20 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestDaemonSets(t *testing.T) *fake.Clientset {
-	clientset := fake.NewSimpleClientset()
+func createTestDaemonSets(t *testing.T) ClientInterface {
+	clientsetinterface, err := NewFakeClientSet(t)
+	if err != nil {
+		t.Fatalf("Error creating client set. Error: %v", err)
+	}
+	clientset := clientsetinterface.GetKubernetesClient()
 
-	_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
+	_, err = clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
 		ObjectMeta: v1.ObjectMeta{Name: testNamespace},
 	}, v1.CreateOptions{})
 
@@ -60,11 +63,12 @@ func createTestDaemonSets(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake %s: %v", "DaemonSet", err)
 	}
 
-	return clientset
+	return clientsetinterface
 }
 
 func TestProcessNamespaceDaemonSets(t *testing.T) {
-	clientset := createTestDaemonSets(t)
+	clientsetinterface := createTestDaemonSets(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	daemonSetsWithoutReplicas, err := processNamespaceDaemonSets(clientset, testNamespace, &filters.Options{})
 	if err != nil {
@@ -81,7 +85,7 @@ func TestProcessNamespaceDaemonSets(t *testing.T) {
 }
 
 func TestGetUnusedDaemonSetsStructured(t *testing.T) {
-	clientset := createTestDaemonSets(t)
+	clientsetinterface := createTestDaemonSets(t)
 
 	opts := common.Opts{
 		WebhookURL:    "",
@@ -92,7 +96,7 @@ func TestGetUnusedDaemonSetsStructured(t *testing.T) {
 		GroupBy:       "namespace",
 	}
 
-	output, err := GetUnusedDaemonSets(&filters.Options{}, clientset, "json", opts)
+	output, err := GetUnusedDaemonSets(&filters.Options{}, clientsetinterface, "json", opts)
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedDaemonSetsStructured: %v", err)
 	}

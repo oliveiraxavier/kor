@@ -15,6 +15,8 @@ import (
 )
 
 var testNamespace = "test-namespace"
+var testNamespaceArgoRollouts = "test-namespace-argo-rollouts"
+
 var AppLabels = map[string]string{}
 var UsedLabels = map[string]string{"kor/used": "true"}
 var UnusedLabels = map[string]string{"kor/used": "false"}

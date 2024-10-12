@@ -53,12 +53,12 @@ type Config struct {
 	// Add other configurations if needed
 }
 
-func (c *ClientSet) GetArgoRolloutsClient() versioned.Interface {
+func (c ClientSet) GetArgoRolloutsClient() versioned.Interface {
 	return c.coreClientArgoRollouts
 }
 
 // GetKubernetesClient returns the Kubernetes core client.
-func (c *ClientSet) GetKubernetesClient() kubernetes.Interface {
+func (c ClientSet) GetKubernetesClient() kubernetes.Interface {
 	return c.coreClient
 }
 

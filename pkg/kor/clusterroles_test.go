@@ -11,21 +11,24 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestClusterRoles(t *testing.T) *fake.Clientset {
-	clientset := fake.NewSimpleClientset()
+func createTestClusterRoles(t *testing.T) ClientInterface {
+	clientsetinterface, err := NewFakeClientSet(t)
+	if err != nil {
+		t.Fatalf("Error creating client set. Error: %v", err)
+	}
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	var AggregatedLabels = map[string]string{"rbac.authorization.k8s.io/aggregate-to-test-clusterRole1": "true"}
 	var matchLabels = v1.LabelSelector{
 		MatchLabels: AggregatedLabels,
 	}
-	_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
+	_, err = clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
 		ObjectMeta: v1.ObjectMeta{Name: testNamespace},
 	}, v1.CreateOptions{})
 
@@ -83,11 +86,11 @@ func createTestClusterRoles(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake %s: %v", "clusterRole", err)
 	}
 
-	return clientset
+	return clientsetinterface
 }
 func TestRetrieveUsedClusterRoles(t *testing.T) {
-	clientset := createTestClusterRoles(t)
-
+	clientsetinterface := createTestClusterRoles(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	usedClusterRoles, err := retrieveUsedClusterRoles(clientset, &filters.Options{})
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -109,7 +112,8 @@ func TestRetrieveUsedClusterRoles(t *testing.T) {
 }
 
 func TestRetrieveClusterRoleNames(t *testing.T) {
-	clientset := createTestClusterRoles(t)
+	clientsetinterface := createTestClusterRoles(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	allRoles, _, err := retrieveClusterRoleNames(clientset, &filters.Options{})
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -120,7 +124,8 @@ func TestRetrieveClusterRoleNames(t *testing.T) {
 }
 
 func TestProcessClusterRoles(t *testing.T) {
-	clientset := createTestClusterRoles(t)
+	clientsetinterface := createTestClusterRoles(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	unusedClusterRoles, err := processClusterRoles(clientset, &filters.Options{})
 	if err != nil {
@@ -137,7 +142,7 @@ func TestProcessClusterRoles(t *testing.T) {
 }
 
 func TestGetUnusedClusterRolesStructured(t *testing.T) {
-	clientset := createTestClusterRoles(t)
+	clientsetinterface := createTestClusterRoles(t)
 
 	opts := common.Opts{
 		WebhookURL:    "",
@@ -148,7 +153,7 @@ func TestGetUnusedClusterRolesStructured(t *testing.T) {
 		GroupBy:       "namespace",
 	}
 
-	output, err := GetUnusedClusterRoles(&filters.Options{}, clientset, "json", opts)
+	output, err := GetUnusedClusterRoles(&filters.Options{}, clientsetinterface, "json", opts)
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedRolesStructured: %v", err)
 	}

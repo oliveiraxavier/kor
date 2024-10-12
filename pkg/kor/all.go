@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned"
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
@@ -85,8 +85,8 @@ func getUnusedDeployments(clientsetinterface ClientInterface, namespace string, 
 	return namespaceSADiff
 }
 
-func getUnusedStatefulSets(clientsetinterface ClientInterface, namespace string, filterOpts *filters.Options) ResourceDiff {
-	stsDiff, err := processNamespaceStatefulSets(clientsetinterface, namespace, filterOpts)
+func getUnusedStatefulSets(clientset kubernetes.Interface, namespace string, filterOpts *filters.Options) ResourceDiff {
+	stsDiff, err := processNamespaceStatefulSets(clientset, namespace, filterOpts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to get %s namespace %s: %v\n", "statefulSets", namespace, err)
 	}
@@ -291,7 +291,7 @@ func GetUnusedAllNamespaced(filterOpts *filters.Options, clientsetinterface Clie
 			resources[namespace]["ServiceAccount"] = getUnusedServiceAccounts(clientset, namespace, filterOpts).diff
 			resources[namespace]["Deployment"] = getUnusedDeployments(clientsetinterface, namespace, filterOpts).diff
 			resources[namespace]["ArgoRollout"] = getUnusedArgoRollouts(clientset, clientsetargorollouts, namespace, filterOpts).diff
-			resources[namespace]["StatefulSet"] = getUnusedStatefulSets(clientsetinterface, namespace, filterOpts).diff
+			resources[namespace]["StatefulSet"] = getUnusedStatefulSets(clientset, namespace, filterOpts).diff
 			resources[namespace]["Role"] = getUnusedRoles(clientset, namespace, filterOpts).diff
 			resources[namespace]["Hpa"] = getUnusedHpas(clientset, namespace, filterOpts).diff
 			resources[namespace]["Pvc"] = getUnusedPvcs(clientset, namespace, filterOpts).diff
@@ -309,7 +309,7 @@ func GetUnusedAllNamespaced(filterOpts *filters.Options, clientsetinterface Clie
 			appendResources(resources, "ServiceAccount", namespace, getUnusedServiceAccounts(clientset, namespace, filterOpts).diff)
 			appendResources(resources, "Deployment", namespace, getUnusedDeployments(clientsetinterface, namespace, filterOpts).diff)
 			appendResources(resources, "ArgoRollout", namespace, getUnusedArgoRollouts(clientset, clientsetargorollouts, namespace, filterOpts).diff)
-			appendResources(resources, "StatefulSet", namespace, getUnusedStatefulSets(clientsetinterface, namespace, filterOpts).diff)
+			appendResources(resources, "StatefulSet", namespace, getUnusedStatefulSets(clientset, namespace, filterOpts).diff)
 			appendResources(resources, "Role", namespace, getUnusedRoles(clientset, namespace, filterOpts).diff)
 			appendResources(resources, "Hpa", namespace, getUnusedHpas(clientset, namespace, filterOpts).diff)
 			appendResources(resources, "Pvc", namespace, getUnusedPvcs(clientset, namespace, filterOpts).diff)

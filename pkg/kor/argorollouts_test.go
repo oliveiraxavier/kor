@@ -20,6 +20,7 @@ func TestGetUnusedArgoRolloutsStructured(t *testing.T) {
 	clientsetinterface := createTestDeployments(t)
 	clientset := clientsetinterface.GetKubernetesClient()
 	clientsetargorollouts := clientsetinterface.GetArgoRolloutsClient()
+
 	opts := common.Opts{
 		WebhookURL:    "",
 		Channel:       "",
@@ -30,7 +31,7 @@ func TestGetUnusedArgoRolloutsStructured(t *testing.T) {
 	}
 
 	_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
-		ObjectMeta: v1.ObjectMeta{Name: testNamespace},
+		ObjectMeta: v1.ObjectMeta{Name: testNamespaceArgoRollouts},
 	}, v1.CreateOptions{})
 
 	if err != nil {
@@ -38,20 +39,20 @@ func TestGetUnusedArgoRolloutsStructured(t *testing.T) {
 	}
 
 	deploymentName := "test-deployment1"
-	deployment1 := CreateTestDeployment(testNamespace, deploymentName, 0, AppLabels)
-	_, err = clientset.AppsV1().Deployments(testNamespace).Create(context.TODO(), deployment1, v1.CreateOptions{})
+	deployment1 := CreateTestDeployment(testNamespaceArgoRollouts, deploymentName, 0, AppLabels)
+	_, err = clientset.AppsV1().Deployments(testNamespaceArgoRollouts).Create(context.TODO(), deployment1, v1.CreateOptions{})
 
 	if err != nil {
 		t.Fatalf("Error creating fake deployment: %v", err)
 	}
 
-	rollout1 := CreateTestArgoRolloutWithDeployment(testNamespace, "test-rollout", deployment1, AppLabels)
-	_, err = clientsetargorollouts.ArgoprojV1alpha1().Rollouts(testNamespace).Create(context.TODO(), rollout1, v1.CreateOptions{})
+	rollout1 := CreateTestArgoRolloutWithDeployment(testNamespaceArgoRollouts, "test-rollout", deployment1, AppLabels)
+	_, err = clientsetargorollouts.ArgoprojV1alpha1().Rollouts(testNamespaceArgoRollouts).Create(context.TODO(), rollout1, v1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Error creating fake argo rollout: %v", err)
 	}
 
-	err = clientset.AppsV1().Deployments(testNamespace).Delete(context.TODO(), deploymentName, v1.DeleteOptions{})
+	err = clientset.AppsV1().Deployments(testNamespaceArgoRollouts).Delete(context.TODO(), deploymentName, v1.DeleteOptions{})
 	if err != nil {
 		t.Fatalf("Error creating fake argo rollout: %v", err)
 	}
@@ -63,7 +64,7 @@ func TestGetUnusedArgoRolloutsStructured(t *testing.T) {
 	}
 
 	expectedOutput := map[string]map[string][]string{
-		testNamespace: {
+		testNamespaceArgoRollouts: {
 			"ArgoRollout": {
 				"test-rollout",
 			},

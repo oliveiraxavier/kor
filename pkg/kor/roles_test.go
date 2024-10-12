@@ -10,17 +10,20 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestRoles(t *testing.T) *fake.Clientset {
-	clientset := fake.NewSimpleClientset()
+func createTestRoles(t *testing.T) ClientInterface {
+	clientsetinterface, err := NewFakeClientSet(t)
+	if err != nil {
+		t.Fatalf("Error creating client set. Error: %v", err)
+	}
+	clientset := clientsetinterface.GetKubernetesClient()
 
-	_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
+	_, err = clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
 		ObjectMeta: v1.ObjectMeta{Name: testNamespace},
 	}, v1.CreateOptions{})
 
@@ -59,10 +62,11 @@ func createTestRoles(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake %s: %v", "Role", err)
 	}
 
-	return clientset
+	return clientsetinterface
 }
 func TestRetrieveUsedRoles(t *testing.T) {
-	clientset := createTestRoles(t)
+	clientsetinterface := createTestRoles(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	usedRoles, err := retrieveUsedRoles(clientset, testNamespace)
 	if err != nil {
@@ -79,7 +83,8 @@ func TestRetrieveUsedRoles(t *testing.T) {
 }
 
 func TestRetrieveRoleNames(t *testing.T) {
-	clientset := createTestRoles(t)
+	clientsetinterface := createTestRoles(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	allRoles, _, err := retrieveRoleNames(clientset, testNamespace, &filters.Options{})
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -91,8 +96,8 @@ func TestRetrieveRoleNames(t *testing.T) {
 }
 
 func TestProcessNamespaceRoles(t *testing.T) {
-	clientset := createTestRoles(t)
-
+	clientsetinterface := createTestRoles(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	unusedRoles, err := processNamespaceRoles(clientset, testNamespace, &filters.Options{})
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -108,7 +113,7 @@ func TestProcessNamespaceRoles(t *testing.T) {
 }
 
 func TestGetUnusedRolesStructured(t *testing.T) {
-	clientset := createTestRoles(t)
+	clientsetinterface := createTestRoles(t)
 
 	opts := common.Opts{
 		WebhookURL:    "",
@@ -119,7 +124,7 @@ func TestGetUnusedRolesStructured(t *testing.T) {
 		GroupBy:       "namespace",
 	}
 
-	output, err := GetUnusedRoles(&filters.Options{}, clientset, "json", opts)
+	output, err := GetUnusedRoles(&filters.Options{}, clientsetinterface, "json", opts)
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedRolesStructured: %v", err)
 	}

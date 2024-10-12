@@ -12,15 +12,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestJobs(t *testing.T) *fake.Clientset {
-	clientset := fake.NewSimpleClientset()
+func createTestJobs(t *testing.T) ClientInterface {
+	clientsetinterface := SetConfigsForTests(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
 		ObjectMeta: v1.ObjectMeta{Name: testNamespace},
@@ -144,12 +144,12 @@ func createTestJobs(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake job: %v", err)
 	}
 
-	return clientset
+	return clientsetinterface
 }
 
 func TestProcessNamespaceJobs(t *testing.T) {
-	clientset := createTestJobs(t)
-
+	clientsetinterface := createTestJobs(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	unusedJobs, err := processNamespaceJobs(clientset, testNamespace, &filters.Options{})
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -169,7 +169,7 @@ func TestProcessNamespaceJobs(t *testing.T) {
 }
 
 func TestGetUnusedJobsStructured(t *testing.T) {
-	clientset := createTestJobs(t)
+	clientsetinterface := createTestJobs(t)
 
 	opts := common.Opts{
 		WebhookURL:    "",
@@ -180,7 +180,7 @@ func TestGetUnusedJobsStructured(t *testing.T) {
 		GroupBy:       "namespace",
 	}
 
-	output, err := GetUnusedJobs(&filters.Options{}, clientset, "json", opts)
+	output, err := GetUnusedJobs(&filters.Options{}, clientsetinterface, "json", opts)
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedJobsStructured: %v", err)
 	}

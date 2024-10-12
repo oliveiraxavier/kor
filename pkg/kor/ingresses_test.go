@@ -8,17 +8,17 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestIngresses(t *testing.T) *fake.Clientset {
-	clientset := fake.NewSimpleClientset()
+func createTestIngresses(t *testing.T) ClientInterface {
+	clientsetinterface := SetConfigsForTests(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
 		ObjectMeta: v1.ObjectMeta{Name: testNamespace},
@@ -59,12 +59,12 @@ func createTestIngresses(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake %s: %v", "Ingress", err)
 	}
 
-	return clientset
+	return clientsetinterface
 }
 
 func TestRetrieveUsedIngress(t *testing.T) {
-	clientset := createTestIngresses(t)
-
+	clientsetinterface := createTestIngresses(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	usedIngresses, err := retrieveUsedIngress(clientset, testNamespace, &filters.Options{})
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -80,8 +80,7 @@ func TestRetrieveUsedIngress(t *testing.T) {
 }
 
 func TestGetUnusedIngressesStructured(t *testing.T) {
-	clientset := createTestIngresses(t)
-
+	clientsetinterface := createTestIngresses(t)
 	opts := common.Opts{
 		WebhookURL:    "",
 		Channel:       "",
@@ -91,7 +90,7 @@ func TestGetUnusedIngressesStructured(t *testing.T) {
 		GroupBy:       "namespace",
 	}
 
-	output, err := GetUnusedIngresses(&filters.Options{}, clientset, "json", opts)
+	output, err := GetUnusedIngresses(&filters.Options{}, clientsetinterface, "json", opts)
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedIngressesStructured: %v", err)
 	}

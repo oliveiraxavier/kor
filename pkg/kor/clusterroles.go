@@ -151,7 +151,6 @@ func retrieveClusterRoleNames(clientset kubernetes.Interface, filterOpts *filter
 }
 
 func processClusterRoles(clientset kubernetes.Interface, filterOpts *filters.Options) ([]ResourceInfo, error) {
-
 	usedClusterRoles, err := retrieveUsedClusterRoles(clientset, filterOpts)
 	if err != nil {
 		return nil, err

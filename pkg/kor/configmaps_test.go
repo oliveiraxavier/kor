@@ -10,17 +10,21 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestConfigmaps(t *testing.T) *fake.Clientset {
-	clientset := fake.NewSimpleClientset()
+func createTestConfigmaps(t *testing.T) ClientInterface {
+	clientsetinterface, err := NewFakeClientSet(t)
+	if err != nil {
+		t.Fatalf("Error creating client set. Error: %v", err)
+	}
 
-	_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
+	clientset := clientsetinterface.GetKubernetesClient()
+
+	_, err = clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: testNamespace},
 	}, metav1.CreateOptions{})
 
@@ -118,12 +122,12 @@ func createTestConfigmaps(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake pod: %v", err)
 	}
 
-	return clientset
+	return clientsetinterface
 }
 
 func TestRetrieveConfigMapNames(t *testing.T) {
-	clientset := createTestConfigmaps(t)
-
+	clientsetinterface := createTestConfigmaps(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	configMapNames, _, err := retrieveConfigMapNames(clientset, testNamespace, &filters.Options{})
 
 	if err != nil {
@@ -141,7 +145,8 @@ func TestRetrieveConfigMapNames(t *testing.T) {
 }
 
 func TestProcessNamespaceCM(t *testing.T) {
-	clientset := createTestConfigmaps(t)
+	clientsetinterface := createTestConfigmaps(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	diff, err := processNamespaceCM(clientset, testNamespace, &filters.Options{})
 	if err != nil {
@@ -158,7 +163,8 @@ func TestProcessNamespaceCM(t *testing.T) {
 }
 
 func TestRetrieveUsedCM(t *testing.T) {
-	clientset := createTestConfigmaps(t)
+	clientsetinterface := createTestConfigmaps(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	volumesCM, envCM, envFromCM, envFromContainerCM, envFromInitContainerCM, err := retrieveUsedCM(clientset, testNamespace)
 
@@ -196,7 +202,7 @@ func TestRetrieveUsedCM(t *testing.T) {
 }
 
 func TestGetUnusedConfigmapsStructured(t *testing.T) {
-	clientset := createTestConfigmaps(t)
+	clientsetinterface := createTestConfigmaps(t)
 
 	opts := common.Opts{
 		WebhookURL:    "",
@@ -207,7 +213,7 @@ func TestGetUnusedConfigmapsStructured(t *testing.T) {
 		GroupBy:       "namespace",
 	}
 
-	output, err := GetUnusedConfigmaps(&filters.Options{}, clientset, "json", opts)
+	output, err := GetUnusedConfigmaps(&filters.Options{}, clientsetinterface, "json", opts)
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedConfigmapsStructured: %v", err)
 	}

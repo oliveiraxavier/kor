@@ -10,15 +10,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestSecrets(t *testing.T) *fake.Clientset {
-	clientset := fake.NewSimpleClientset()
+func createTestSecrets(t *testing.T) ClientInterface {
+	clientsetinterface := SetConfigsForTests(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
 		ObjectMeta: v1.ObjectMeta{Name: testNamespace},
@@ -142,11 +142,12 @@ func createTestSecrets(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake %s: %v", "Secret", err)
 	}
 
-	return clientset
+	return clientsetinterface
 }
 
 func TestRetrieveIngressTLS(t *testing.T) {
-	clientset := fake.NewSimpleClientset()
+	clientsetinterface := createTestJobs(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	ingress1 := CreateTestIngress(testNamespace, "test-ingress-1", "my-service-1", "test-secret1", AppLabels)
 	appLabels := map[string]string{}
@@ -184,8 +185,8 @@ func TestRetrieveIngressTLS(t *testing.T) {
 }
 
 func TestRetrieveUsedSecret(t *testing.T) {
-	clientset := createTestSecrets(t)
-
+	clientsetinterface := createTestSecrets(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	envSecrets, envSecrets2, volumeSecrets, initContainerEnvSecrets, pullSecrets, _, err := retrieveUsedSecret(clientset, testNamespace)
 	if err != nil {
 		t.Fatalf("Error retrieving used secrets: %v", err)
@@ -225,7 +226,8 @@ func TestRetrieveUsedSecret(t *testing.T) {
 }
 
 func TestRetrieveSecretNames(t *testing.T) {
-	clientset := fake.NewSimpleClientset()
+	clientsetinterface := createTestJobs(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	appLabels := map[string]string{}
 	secret1 := CreateTestSecret(testNamespace, "secret-1", appLabels)
@@ -257,8 +259,8 @@ func TestRetrieveSecretNames(t *testing.T) {
 }
 
 func TestProcessNamespaceSecret(t *testing.T) {
-	clientset := createTestSecrets(t)
-
+	clientsetinterface := createTestSecrets(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	unusedSecrets, err := processNamespaceSecret(clientset, testNamespace, &filters.Options{})
 	if err != nil {
 		t.Fatalf("Error retrieving unused secrets: %v", err)
@@ -275,7 +277,7 @@ func TestProcessNamespaceSecret(t *testing.T) {
 }
 
 func TestGetUnusedSecretsStructured(t *testing.T) {
-	clientset := createTestSecrets(t)
+	clientsetinterface := createTestSecrets(t)
 
 	opts := common.Opts{
 		WebhookURL:    "",
@@ -286,7 +288,7 @@ func TestGetUnusedSecretsStructured(t *testing.T) {
 		GroupBy:       "namespace",
 	}
 
-	output, err := GetUnusedSecrets(&filters.Options{}, clientset, "json", opts)
+	output, err := GetUnusedSecrets(&filters.Options{}, clientsetinterface, "json", opts)
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedSecretsStructured: %v", err)
 	}

@@ -8,9 +8,10 @@ import (
 	"os"
 
 	"github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func processNamespaceDeployments(clientsetinterface ClientInterface, namespace string, filterOpts *filters.Options) ([]ResourceInfo, error) {

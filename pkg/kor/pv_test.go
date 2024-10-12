@@ -7,14 +7,14 @@ import (
 	"testing"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestPvs(t *testing.T) *fake.Clientset {
-	clientset := fake.NewSimpleClientset()
+func createTestPvs(t *testing.T) ClientInterface {
+	clientsetinterface := SetConfigsForTests(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	pv1 := CreateTestPv("test-pv1", "Bound", AppLabels, "test-sc1")
 	_, err := clientset.CoreV1().PersistentVolumes().Create(context.TODO(), pv1, v1.CreateOptions{})
@@ -40,11 +40,12 @@ func createTestPvs(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake %s: %v", "PV", err)
 	}
 
-	return clientset
+	return clientsetinterface
 }
 
 func TestProcessPvs(t *testing.T) {
-	clientset := createTestPvs(t)
+	clientsetinterface := createTestPvs(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	usedPvs, err := processPvs(clientset, &filters.Options{})
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -60,7 +61,7 @@ func TestProcessPvs(t *testing.T) {
 }
 
 func TestGetUnusedPvs(t *testing.T) {
-	clientset := createTestPvs(t)
+	clientsetinterface := createTestPvs(t)
 
 	opts := common.Opts{
 		WebhookURL:    "",
@@ -71,7 +72,7 @@ func TestGetUnusedPvs(t *testing.T) {
 		GroupBy:       "namespace",
 	}
 
-	output, err := GetUnusedPvs(&filters.Options{}, clientset, "json", opts)
+	output, err := GetUnusedPvs(&filters.Options{}, clientsetinterface, "json", opts)
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedPvs: %v", err)
 	}

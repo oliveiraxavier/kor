@@ -8,19 +8,22 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestServices(t *testing.T) *fake.Clientset {
-	clientset := fake.NewSimpleClientset()
+func createTestServices(t *testing.T) ClientInterface {
+	clientsetinterface, err := NewFakeClientSet(t)
+	if err != nil {
+		t.Fatalf("Error creating client set. Error: %v", err)
+	}
+	clientset := clientsetinterface.GetKubernetesClient()
 
-	_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
+	_, err = clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
 		ObjectMeta: v1.ObjectMeta{Name: testNamespace},
 	}, v1.CreateOptions{})
 
@@ -52,12 +55,12 @@ func createTestServices(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake endpoint: %v", err)
 	}
 
-	return clientset
+	return clientsetinterface
 }
 
 func TestGetEndpointsWithoutSubsets(t *testing.T) {
-	clientset := createTestServices(t)
-
+	clientsetinterface := createTestServices(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	servicesWithoutEndpoints, err := processNamespaceServices(clientset, testNamespace, &filters.Options{})
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -73,7 +76,7 @@ func TestGetEndpointsWithoutSubsets(t *testing.T) {
 }
 
 func TestGetUnusedServicesStructured(t *testing.T) {
-	clientset := createTestServices(t)
+	clientsetinterface := createTestServices(t)
 
 	opts := common.Opts{
 		WebhookURL:    "",
@@ -84,7 +87,7 @@ func TestGetUnusedServicesStructured(t *testing.T) {
 		GroupBy:       "namespace",
 	}
 
-	output, err := GetUnusedServices(&filters.Options{}, clientset, "json", opts)
+	output, err := GetUnusedServices(&filters.Options{}, clientsetinterface, "json", opts)
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedServicesStructured: %v", err)
 	}

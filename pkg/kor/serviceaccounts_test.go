@@ -10,18 +10,20 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestServiceAccounts(t *testing.T) *fake.Clientset {
+func createTestServiceAccounts(t *testing.T) ClientInterface {
+	clientsetinterface, err := NewFakeClientSet(t)
+	if err != nil {
+		t.Fatalf("Error creating client set. Error: %v", err)
+	}
+	clientset := clientsetinterface.GetKubernetesClient()
 
-	clientset := fake.NewSimpleClientset()
-
-	_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
+	_, err = clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
 		ObjectMeta: v1.ObjectMeta{Name: testNamespace},
 	}, v1.CreateOptions{})
 
@@ -53,11 +55,11 @@ func createTestServiceAccounts(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake %s: %v", "ServiceAccount", err)
 	}
 
-	return clientset
+	return clientsetinterface
 }
 func TestGetServiceAccountsFromClusterRoleBindings(t *testing.T) {
-	clientset := createTestServiceAccounts(t)
-
+	clientsetinterface := createTestServiceAccounts(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	clusterRoleBinding1 := CreateTestClusterRoleBinding(testNamespace, "test-crb1", "test-sa1")
 	_, err := clientset.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding1, v1.CreateOptions{})
 	if err != nil {
@@ -80,7 +82,8 @@ func TestGetServiceAccountsFromClusterRoleBindings(t *testing.T) {
 }
 
 func TestGetServiceAccountsFromRoleBindings(t *testing.T) {
-	clientset := createTestServiceAccounts(t)
+	clientsetinterface := createTestServiceAccounts(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	testRoleRef := CreateTestRoleRef("test-role")
 	roleBinding1 := CreateTestRoleBinding(testNamespace, "test-crb1", "test-sa1", testRoleRef)
@@ -105,7 +108,8 @@ func TestGetServiceAccountsFromRoleBindings(t *testing.T) {
 
 func TestRetrieveUsedSA(t *testing.T) {
 	var volumeList []corev1.Volume
-	clientset := createTestServiceAccounts(t)
+	clientsetinterface := createTestServiceAccounts(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	testVolume := CreateTestVolume("test-volume1", "test-pvc")
 	volumeList = append(volumeList, *testVolume)
@@ -131,7 +135,8 @@ func TestRetrieveUsedSA(t *testing.T) {
 }
 
 func TestRetrieveServiceAccountNames(t *testing.T) {
-	clientset := createTestServiceAccounts(t)
+	clientsetinterface := createTestServiceAccounts(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	serviceAccountNames, _, err := retrieveServiceAccountNames(clientset, testNamespace, &filters.Options{})
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -142,7 +147,8 @@ func TestRetrieveServiceAccountNames(t *testing.T) {
 }
 
 func TestProcessNamespaceSA(t *testing.T) {
-	clientset := createTestServiceAccounts(t)
+	clientsetinterface := createTestServiceAccounts(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	var volumeList []corev1.Volume
 
 	testVolume := CreateTestVolume("test-volume1", "test-pvc")
@@ -177,7 +183,8 @@ func TestProcessNamespaceSA(t *testing.T) {
 }
 
 func TestGetUnusedServiceAccountsStructured(t *testing.T) {
-	clientset := createTestServiceAccounts(t)
+	clientsetinterface := createTestServiceAccounts(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 
 	clusterRoleBinding1 := CreateTestClusterRoleBinding(testNamespace, "test-crb1", "test-sa1")
 	_, err := clientset.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding1, v1.CreateOptions{})
@@ -194,7 +201,7 @@ func TestGetUnusedServiceAccountsStructured(t *testing.T) {
 		GroupBy:       "namespace",
 	}
 
-	output, err := GetUnusedServiceAccounts(&filters.Options{}, clientset, "json", opts)
+	output, err := GetUnusedServiceAccounts(&filters.Options{}, clientsetinterface, "json", opts)
 	if err != nil {
 		t.Fatalf("Error calling GetUnusedServiceAccountsStructured: %v", err)
 	}

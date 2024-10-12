@@ -10,17 +10,20 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/yonahd/kor/pkg/common"
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-func createTestStatefulSets(t *testing.T) *fake.Clientset {
-	clientset := fake.NewSimpleClientset()
+func createTestStatefulSets(t *testing.T) ClientInterface {
+	clientsetinterface, err := NewFakeClientSet(t)
+	if err != nil {
+		t.Fatalf("Error creating client set. Error: %v", err)
+	}
+	clientset := clientsetinterface.GetKubernetesClient()
 
-	_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
+	_, err = clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
 		ObjectMeta: v1.ObjectMeta{Name: testNamespace},
 	}, v1.CreateOptions{})
 
@@ -52,12 +55,12 @@ func createTestStatefulSets(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake %s: %v", "statefulSet", err)
 	}
 
-	return clientset
+	return clientsetinterface
 }
 
 func TestProcessNamespaceStatefulSets(t *testing.T) {
-	clientset := createTestStatefulSets(t)
-
+	clientsetinterface := createTestStatefulSets(t)
+	clientset := clientsetinterface.GetKubernetesClient()
 	statefulSetsWithoutReplicas, err := processNamespaceStatefulSets(clientset, testNamespace, &filters.Options{})
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
