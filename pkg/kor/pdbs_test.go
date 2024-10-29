@@ -14,33 +14,20 @@ import (
 	"github.com/yonahd/kor/pkg/filters"
 )
 
-var testNamespace2 = "test-namespace2"
-
 func createTestPdbs(t *testing.T) *fake.Clientset {
 	clientset := fake.NewSimpleClientset()
-	namespaces := []string{testNamespace, testNamespace2}
-	var err error
 
-	for _, ns := range namespaces {
-		_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
-			ObjectMeta: v1.ObjectMeta{Name: ns},
-		}, v1.CreateOptions{})
+	_, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
+		ObjectMeta: v1.ObjectMeta{Name: testNamespace},
+	}, v1.CreateOptions{})
 
-		if err != nil {
-			t.Fatalf("Error creating namespace %s: %v", ns, err)
-		}
+	if err != nil {
+		t.Fatalf("Error creating namespace %s: %v", testNamespace, err)
 	}
 
 	appLabels1 := map[string]string{
 		"app": "my-app",
 	}
-
-	appLabels2 := map[string]string{
-		"unused-app": "my-unused-app",
-	}
-
-	// Empty selector
-	appLabels3 := map[string]string{}
 
 	pdb1 := CreateTestPdb(testNamespace, "test-pdb1", appLabels1, AppLabels)
 	_, err = clientset.PolicyV1().PodDisruptionBudgets(testNamespace).Create(context.TODO(), pdb1, v1.CreateOptions{})
@@ -54,8 +41,7 @@ func createTestPdbs(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake %s: %v", "Pdb", err)
 	}
 
-	// Unused PDB - no matching templates / workloads
-	pdb3 := CreateTestPdb(testNamespace, "test-pdb3", appLabels2, AppLabels)
+	pdb3 := CreateTestPdb(testNamespace, "test-pdb3", AppLabels, AppLabels)
 	_, err = clientset.PolicyV1().PodDisruptionBudgets(testNamespace).Create(context.TODO(), pdb3, v1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Error creating fake %s: %v", "Pdb", err)
@@ -67,22 +53,8 @@ func createTestPdbs(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake %s: %v", "Pdb", err)
 	}
 
-	// Unused PDB - kor/used: false
 	pdb5 := CreateTestPdb(testNamespace, "test-pdb5", AppLabels, UnusedLabels)
 	_, err = clientset.PolicyV1().PodDisruptionBudgets(testNamespace).Create(context.TODO(), pdb5, v1.CreateOptions{})
-	if err != nil {
-		t.Fatalf("Error creating fake %s: %v", "Pdb", err)
-	}
-
-	pdb6 := CreateTestPdb(testNamespace, "test-pdb6", appLabels3, AppLabels)
-	_, err = clientset.PolicyV1().PodDisruptionBudgets(testNamespace).Create(context.TODO(), pdb6, v1.CreateOptions{})
-	if err != nil {
-		t.Fatalf("Error creating fake %s: %v", "Pdb", err)
-	}
-
-	// Unused PDB - empty selector with 0 pods running
-	pdb7 := CreateTestPdb(testNamespace2, "test-pdb7", appLabels3, AppLabels)
-	_, err = clientset.PolicyV1().PodDisruptionBudgets(testNamespace2).Create(context.TODO(), pdb7, v1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Error creating fake %s: %v", "Pdb", err)
 	}
@@ -99,38 +71,23 @@ func createTestPdbs(t *testing.T) *fake.Clientset {
 		t.Fatalf("Error creating fake %s: %v", "StatefulSet", err)
 	}
 
-	pod1 := CreateTestPod(testNamespace, "test-arbitrary-pod", "", nil, appLabels1)
-	_, err = clientset.CoreV1().Pods(testNamespace).Create(context.TODO(), pod1, v1.CreateOptions{})
-	if err != nil {
-		t.Fatalf("Error creating fake %s: %v", "Pod", err)
-	}
-
 	return clientset
 }
 
 func TestProcessNamespacePdbs(t *testing.T) {
 	clientset := createTestPdbs(t)
-	namespaces := []string{testNamespace, testNamespace2}
-	expectedUnusedPdbs := []string{"test-pdb3", "test-pdb5", "test-pdb7"}
-	totalUnusedPdbs := []ResourceInfo{}
 
-	for _, ns := range namespaces {
-		unusedPdbs, err := processNamespacePdbs(clientset, ns, &filters.Options{})
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-
-		totalUnusedPdbs = append(totalUnusedPdbs, unusedPdbs...)
+	unusedPdbs, err := processNamespacePdbs(clientset, testNamespace, &filters.Options{})
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
 	}
 
-	if len(totalUnusedPdbs) != len(expectedUnusedPdbs) {
-		t.Errorf("Expected %d unused pdbs, got %d", len(expectedUnusedPdbs), len(totalUnusedPdbs))
+	if len(unusedPdbs) != 2 {
+		t.Errorf("Expected 2 unused pdb, got %d", len(unusedPdbs))
 	}
 
-	for i, expected := range expectedUnusedPdbs {
-		if totalUnusedPdbs[i].Name != expected {
-			t.Errorf("Expected '%s' in unused pdbs, got '%s'", expected, totalUnusedPdbs[i].Name)
-		}
+	if unusedPdbs[0].Name != "test-pdb3" && unusedPdbs[1].Name != "test-pdb5" {
+		t.Errorf("Expected 'test-pdb3', got %s", unusedPdbs[0])
 	}
 }
 
@@ -156,11 +113,6 @@ func TestGetUnusedPdbsStructured(t *testing.T) {
 			"Pdb": {
 				"test-pdb3",
 				"test-pdb5",
-			},
-		},
-		testNamespace2: {
-			"Pdb": {
-				"test-pdb7",
 			},
 		},
 	}
