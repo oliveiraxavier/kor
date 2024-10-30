@@ -150,7 +150,7 @@ func TestGetUnusedArgoRolloutsStructuredByNamespace(t *testing.T) {
 	parseOpts.GroupBy = "namespace"
 
 	opts := &filters.Options{}
-	opts.IncludeCrds = append(opts.IncludeCrds, "argo-rollouts")
+	opts.IncludeThirdPartyCrds = append(opts.IncludeThirdPartyCrds, "argo-rollouts")
 	opts.IncludeNamespaces = append(opts.IncludeNamespaces, "testNamespace")
 
 	resources := make(map[string]map[string][]ResourceInfo)
@@ -201,7 +201,7 @@ func TestGetUnusedArgoRolloutsStructuredByResources(t *testing.T) {
 	parseOpts.GroupBy = "resource"
 
 	opts := &filters.Options{}
-	opts.IncludeCrds = append(opts.IncludeCrds, "argo-rollouts")
+	opts.IncludeThirdPartyCrds = append(opts.IncludeThirdPartyCrds, "argo-rollouts")
 	opts.IncludeNamespaces = append(opts.IncludeNamespaces, "testNamespace")
 
 	resources := make(map[string]map[string][]ResourceInfo)
@@ -251,7 +251,7 @@ func TestGetUnusedArgoRolloutsCanary(t *testing.T) {
 	}
 
 	opts := &filters.Options{}
-	opts.IncludeCrds = append(opts.IncludeCrds, "argo-rollouts")
+	opts.IncludeThirdPartyCrds = append(opts.IncludeThirdPartyCrds, "argo-rollouts")
 	opts.IncludeNamespaces = append(opts.IncludeNamespaces, testNamespace)
 
 	resources := GetUnusedArgoRollouts(clientsetinterface, testNamespace, opts)
@@ -281,7 +281,7 @@ func TestGetUnusedArgoRolloutsBlueGreen(t *testing.T) {
 	}
 
 	opts := &filters.Options{}
-	opts.IncludeCrds = append(opts.IncludeCrds, "argo-rollouts")
+	opts.IncludeThirdPartyCrds = append(opts.IncludeThirdPartyCrds, "argo-rollouts")
 	opts.IncludeNamespaces = append(opts.IncludeNamespaces, testNamespace)
 
 	resources := GetUnusedArgoRollouts(clientsetinterface, testNamespace, opts)
@@ -312,7 +312,7 @@ func TestGetUnusedArgoRolloutsAnalysisTemplatesCanary(t *testing.T) {
 	}
 
 	opts := &filters.Options{}
-	opts.IncludeCrds = append(opts.IncludeCrds, "argo-rollouts")
+	opts.IncludeThirdPartyCrds = append(opts.IncludeThirdPartyCrds, "argo-rollouts")
 	opts.IncludeNamespaces = append(opts.IncludeNamespaces, testNamespace)
 
 	resources := GetUnusedArgoRolloutsAnalysisTemplates(clientsetinterface, testNamespace, opts)
@@ -344,7 +344,7 @@ func TestGetUnusedArgoRolloutsAnalysisTemplatesBlueGreen(t *testing.T) {
 	}
 
 	opts := &filters.Options{}
-	opts.IncludeCrds = append(opts.IncludeCrds, "argo-rollouts")
+	opts.IncludeThirdPartyCrds = append(opts.IncludeThirdPartyCrds, "argo-rollouts")
 	opts.IncludeNamespaces = append(opts.IncludeNamespaces, testNamespace)
 
 	resources := GetUnusedArgoRolloutsAnalysisTemplates(clientsetinterface, testNamespace, opts)
@@ -376,7 +376,7 @@ func TestGetUnusedArgoRolloutsClusterAnalysisTemplatesCanary(t *testing.T) {
 	}
 
 	opts := &filters.Options{}
-	opts.IncludeCrds = append(opts.IncludeCrds, "argo-rollouts")
+	opts.IncludeThirdPartyCrds = append(opts.IncludeThirdPartyCrds, "argo-rollouts")
 	opts.IncludeNamespaces = append(opts.IncludeNamespaces, testNamespace)
 
 	resources := GetUnusedArgoRolloutsClusterAnalysisTemplates(clientsetinterface, testNamespace, opts)
@@ -408,7 +408,7 @@ func TestGetUnusedArgoRolloutsClusterAnalysisTemplatesBlueGreen(t *testing.T) {
 	}
 
 	opts := &filters.Options{}
-	opts.IncludeCrds = append(opts.IncludeCrds, "argo-rollouts")
+	opts.IncludeThirdPartyCrds = append(opts.IncludeThirdPartyCrds, "argo-rollouts")
 	opts.IncludeNamespaces = append(opts.IncludeNamespaces, testNamespace)
 
 	resources := GetUnusedArgoRolloutsClusterAnalysisTemplates(clientsetinterface, testNamespace, opts)

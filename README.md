@@ -32,6 +32,9 @@ Kor is a tool to discover unused Kubernetes resources. Currently, Kor can identi
 - StorageClasses
 - NetworkPolicies
 - RoleBindings
+- Argo Rollouts
+- Argo Rollouts Analysis template
+- Argo Rollouts Cluster Analysis template
 
 ![Kor Screenshot](/images/show_reason_screenshot.png)
 
@@ -125,6 +128,7 @@ Kor provides various subcommands to identify and list unused resources. The avai
 - `daemonset`- Gets unused DaemonSets for the specified namespace or all namespaces.
 - `finalizer` - Gets unused pending deletion resources for the specified namespace or all namespaces.
 - `networkpolicy` - Gets unused NetworkPolicies for the specified namespace or all namespaces.
+- `argo-rollouts, argo-rollouts-analysis-templates, argo-rollouts-cluster-analysis-templates` - Gets unsed argo-rollouts, analysis-templates and cluster-analysis-templates
 - `exporter` - Export Prometheus metrics.
 - `version` - Print kor version information.
 
@@ -147,7 +151,9 @@ Kor provides various subcommands to identify and list unused resources. The avai
       --slack-auth-token string      Slack auth token to send notifications to. --slack-auth-token requires --slack-channel to be set.
       --slack-channel string         Slack channel to send notifications to. --slack-channel requires --slack-auth-token to be set.
       --slack-webhook-url string     Slack webhook URL to send notifications to
+  --include-third-party-crds         To get unused argo-rollouts, analysis-templates and cluster-analysis-templates
   -v, --verbose                      Verbose output (print empty namespaces)
+
 ```
 
 To use a specific subcommand, run `kor [subcommand] [flags]`.
@@ -155,6 +161,13 @@ To use a specific subcommand, run `kor [subcommand] [flags]`.
 ```sh
 kor all --include-namespaces my-namespace
 ```
+
+To get all with Argo Rollouts
+
+```sh
+kor all --include-namespaces my-namespace --include-third-party-crds argo-rollouts,argo-rollouts-analysis-templates,argo-rollouts-cluster-analysis-templates
+```
+
 
 For more information about each subcommand and its available flags, you can use the `--help` flag.
 
@@ -185,7 +198,9 @@ kor [subcommand] --help
 | ReplicaSets     | replicaSets that specify replicas to 0 and has already completed it's work                                                                                                                                                        |
 | DaemonSets      | DaemonSets not scheduled on any nodes                                                                                                                                                                                             |
 | StorageClasses  | StorageClasses not used by any PVs/PVCs                                                                                                                                                                                           |
-| NetworkPolicies  | NetworkPolicies with no Pods selected by podSelector or Ingress/Egress rules                                                                                                                                                                                           |
+| ArgoRollouts    | ArgoRollouts not used by any deployment                                                                                                                                                                                           |
+| ArgoRollouts-AnalysisTemplate    | Analysys template not used by any Argo Rollout                                                                                                                                                                   |
+| ArgoRollouts-ClusterAnalysisTemplate  | Cluster analysys template not used by any Argo Rollout                                                                                                                                                      |
 
 ### Deleting Unused resources
 

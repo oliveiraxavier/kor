@@ -39,9 +39,9 @@ type Options struct {
 	// IncludeNamespaces is a namespace selector to include resources in matching namespaces
 	IncludeNamespaces []string
 
-	namespace   []string
-	once        sync.Once
-	IncludeCrds []string
+	namespace             []string
+	once                  sync.Once
+	IncludeThirdPartyCrds []string
 }
 
 // NewFilterOptions returns a new FilterOptions instance with default values
@@ -162,19 +162,19 @@ func (o *Options) Namespaces(clientset kubernetes.Interface) []string {
 }
 
 func (o *Options) CleanRepeatedCrds() []string {
-	if len(o.IncludeCrds) > 0 {
+	if len(o.IncludeThirdPartyCrds) > 0 {
 		keys := make(map[string]bool)
 		includecrdsNew := make([]string, 0)
 
-		for _, entry := range o.IncludeCrds {
+		for _, entry := range o.IncludeThirdPartyCrds {
 			if _, value := keys[entry]; !value {
 				keys[entry] = true
 				includecrdsNew = append(includecrdsNew, entry)
 			}
-			o.IncludeCrds = includecrdsNew
+			o.IncludeThirdPartyCrds = includecrdsNew
 		}
 	}
-	return o.IncludeCrds
+	return o.IncludeThirdPartyCrds
 }
 
 func (o *Options) modifyLabels() {

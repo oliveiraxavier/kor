@@ -9,5 +9,4 @@ type Opts struct {
 	Token         string
 	GroupBy       string
 	ShowReason    bool
-	IncludeCrds   string
 }
