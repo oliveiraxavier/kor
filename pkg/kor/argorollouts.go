@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/yonahd/kor/pkg/clusterconfig"
 	"github.com/yonahd/kor/pkg/filters"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func GetUnusedArgoRollouts(clientsetinterface clusterconfig.ClientInterface, namespace string, filterOpts *filters.Options) ResourceDiff {
@@ -121,8 +122,8 @@ func processNamespaceArgoAnalysisTemplate(clientsetinterface clusterconfig.Clien
 			if !skip {
 				rolloutCanaryAnalysis := argoRollout.Spec.Strategy.Canary.Analysis.Templates
 				for _, canaryAnalysisItem := range rolloutCanaryAnalysis {
-					if canaryAnalysisItem.TemplateName == argoRolloutAnalysisTemplate.Name {
-						templateNameInUse = true
+					templateNameInUse = canaryAnalysisItem.TemplateName == argoRolloutAnalysisTemplate.Name
+					if templateNameInUse {
 						continue
 					}
 				}
@@ -133,14 +134,13 @@ func processNamespaceArgoAnalysisTemplate(clientsetinterface clusterconfig.Clien
 				rolloutBlueGreenAnalysis := argoRollout.Spec.Strategy.BlueGreen.PrePromotionAnalysis.Templates
 				for _, blueGreenAnalysisAnalysisItem := range rolloutBlueGreenAnalysis {
 					for _, argoRolloutAnalysisTemplate := range argoRolloutAnalysisTemplateList.Items {
-						if blueGreenAnalysisAnalysisItem.TemplateName == argoRolloutAnalysisTemplate.Name {
-							templateNameInUse = true
+						templateNameInUse = blueGreenAnalysisAnalysisItem.TemplateName == argoRolloutAnalysisTemplate.Name
+						if templateNameInUse {
 							continue
 						}
 					}
 				}
 			}
-			templateNameInUse = false
 		}
 		if !templateNameInUse {
 			reason := "Argo Rollouts Analysis Templates is not in use"

@@ -5,9 +5,10 @@ import (
 
 	"github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned"
 	fakeargorollouts "github.com/argoproj/argo-rollouts/pkg/client/clientset/versioned/fake"
-	"github.com/yonahd/kor/pkg/clusterconfig"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+
+	"github.com/yonahd/kor/pkg/clusterconfig"
 )
 
 type FakeClientSet struct {
