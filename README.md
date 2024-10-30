@@ -268,6 +268,45 @@ Unused resources in namespace: "test"
 +---+----------------+----------------------------------------------+--------------------------------------------------------+
 ```
 
+```sh
+kor all --include-third-party-crds argo-rollouts,argo-rollouts-analysis-templates,argo-rollouts-cluster-analysis-templates --show-reason --show-reason
+```
+```
+Unused resources in namespace: "default"
++---+-------------------------------+------------------------------------+------------------------------------------------+
+| # |         RESOURCE TYPE         |           RESOURCE NAME            |                     REASON                     |
++---+-------------------------------+------------------------------------+------------------------------------------------+
+| 1 | ServiceAccount                | bookinfo-gateway-istio             | ServiceAccount is not in use                   |
+| 2 | ConfigMap                     | istio-ca-root-cert                 | ConfigMap is not used in any pod or container  |
+| 3 | Pvc                           | devlake-mysql-data-devlake-mysql-0 | PVC is not in use                              |
+| 4 | ReplicaSet                    | rollout-canary-679b8b5b4c          | ReplicaSet is not in use                       |
+| 5 | ArgoRollout                   | rollout-canary                     | Rollout has 0 replicas                         |
+| 6 | ArgoRollouts-AnalysisTemplate | pass                               | Argo Rollouts Analysis Templates is not in use |
++---+-------------------------------+------------------------------------+------------------------------------------------+
+
+Unused resources in namespace: ""
++----+--------------------------------------+----------------------------------+--------------------------------------------------------------+
+| #  |            RESOURCE TYPE             |          RESOURCE NAME           |                            REASON                            |
++----+--------------------------------------+----------------------------------+--------------------------------------------------------------+
+|  1 | ArgoRollouts-ClusterAnalysisTemplate | always-pass                      | Argo Rollouts Cluster Analysis Templates is not in use       |
+|  2 | ArgoRollouts-ClusterAnalysisTemplate | alert-template                   | Argo Rollouts Cluster Analysis Templates is not in use       |
+|  3 | Pv                                   | mongo-data-pv                    | Persistent Volume is not in use                              |
+|  4 | Pv                                   | config                           | Persistent Volume is not in use                              |
+|  5 | ClusterRole                          | cert-manager-cluster-view        | ClusterRole is not used by any RoleBinding or                |
+|    |                                      |                                  | ClusterRoleBinding                                           |
+|  6 | ClusterRole                          | cert-manager-view                | ClusterRole is not used by any RoleBinding or                |
+|    |                                      |                                  | ClusterRoleBinding                                           |
+|  7 | ClusterRole                          | cert-manager-edit                | ClusterRole is not used by any RoleBinding or                |
+|    |                                      |                                  | ClusterRoleBinding                                           |
+|  8 | ClusterRole                          | argo-rollouts-aggregate-to-admin | ClusterRole is not used by any RoleBinding or                |
+|    |                                      |                                  | ClusterRoleBinding                                           |
+|  9 | ClusterRole                          | argo-rollouts-aggregate-to-edit  | ClusterRole is not used by any RoleBinding or                |
+|    |                                      |                                  | ClusterRoleBinding                                           |
+| 10 | ClusterRole                          | argo-rollouts-aggregate-to-view  | ClusterRole is not used by any RoleBinding or                |
+|    |                                      |                                  | ClusterRoleBinding                                           |
++----+--------------------------------------+----------------------------------+--------------------------------------------------------------+
+```
+
 #### Group by resource
 
 ```sh
@@ -296,6 +335,33 @@ Unused ReplicaSets:
 | 1 | ns1       | deploy1-654d48b75f |
 | 2 | ns2       | deploy2-79f48888c6 |
 +---+-----------+--------------------+
+```
+
+```sh
+kor all --include-third-party-crds argo-rollouts,argo-rollouts-analysis-templates,argo-rollouts-cluster-analysis-templates --group-by=resource --output=table
+```
+```
+Unused ArgoRollouts:
++---+-----------+----------------+
+| # | NAMESPACE | RESOURCE NAME  |
++---+-----------+----------------+
+| 1 | default   | rollout-canary |
++---+-----------+----------------+
+
+Unused ArgoRollouts-AnalysisTemplates:
++---+-----------+---------------+
+| # | NAMESPACE | RESOURCE NAME |
++---+-----------+---------------+
+| 1 | default   | pass          |
++---+-----------+---------------+
+
+Unused ArgoRollouts-ClusterAnalysisTemplates:
++---+-----------+----------------+
+| # | NAMESPACE | RESOURCE NAME  |
++---+-----------+----------------+
+| 1 |           | always-pass    |
+| 2 |           | alert-template |
++---+-----------+----------------+
 ```
 
 #### Group by namespace
